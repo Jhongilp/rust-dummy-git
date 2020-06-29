@@ -1,25 +1,18 @@
 use std::io;
+use std::fmt;
 use std::io::{Read,Write};
 
-fn main() -> Result<(), crossterm::ErrorKind> {
-    // println!("Hello, world!");
-    
-    // crossterm::terminal::enable_raw_mode().unwrap();
+fn main() -> Result<(), Error> {
     crossterm::terminal::enable_raw_mode()?;
 
     let mut stdout = io::stdout();
     stdout.write_all(b"hello world\n").unwrap();
 
     let mut stdin = io::stdin().bytes();
-    // for byte in stdin {
     loop {
-        // println!("byte {}", byte.unwrap());
         write!(stdout, "Type something > ").unwrap();
-        
-        // stdout.flush().unwrap();
         stdout.flush()?;
         
-        // let byte = stdin.next().unwrap().unwrap();
         let byte = match stdin.next() {
             Some(b) => b?,
             None => break,
@@ -31,7 +24,6 @@ fn main() -> Result<(), crossterm::ErrorKind> {
             break;
         }
 
-        // write!(stdout, "You typed '{}'\n", c).unwrap();
         write!(stdout, "You typed '{}'\n", c)?;
         stdout.flush()?;
     }
@@ -40,32 +32,39 @@ fn main() -> Result<(), crossterm::ErrorKind> {
 
     Ok(())
 }
-// fn main() {
-//     // println!("Hello, world!");
-    
-//     crossterm::terminal::enable_raw_mode().unwrap();
 
-//     let mut stdout = io::stdout();
-//     stdout.write_all(b"hello world\n").unwrap();
+#[derive(Debug)]
+enum Error {
+    CrosstermError(crossterm::ErrorKind),
+    IoError(io::Error),
+}
 
-//     let mut stdin = io::stdin().bytes();
-//     // for byte in stdin {
-//     loop {
-//         // println!("byte {}", byte.unwrap());
-//         write!(stdout, "Type something > ").unwrap();
-//         stdout.flush().unwrap();
+impl From<crossterm::ErrorKind> for Error {
+    fn from(error: crossterm::ErrorKind) -> Error {
+        Error::CrosstermError(error)
+    }
+}
 
-//         // let c = char::from(byte.unwrap());
-//         let c = char::from(stdin.next().unwrap().unwrap());
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Error {
+        Error::IoError(error)
+    }
+}
 
-//         if c == 'q' {
-//             break;
-//         }
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::CrosstermError(inner) => write!(f, "{}", inner),
+            Error::IoError(inner) => write!(f, "{}", inner),
+        }
+    }
+}
 
-//         // write!(stdout, "You typed '{}'\n", c).unwrap();
-//         write!(stdout, "You typed '{}'\n", c).unwrap();
-//         stdout.flush().unwrap();
-//     }
-
-//     crossterm::terminal::disable_raw_mode().unwrap();
-// }
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Error::CrosstermError(inner) => Some(inner),
+            Error::IoError(inner) => Some(inner),
+        }
+    }
+}
