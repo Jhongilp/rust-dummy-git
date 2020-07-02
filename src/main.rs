@@ -6,6 +6,15 @@ use git2::Repository;
 fn main() -> Result<(), Error> {
     let repo = Repository::open_from_env()?;
 
+    let mut stdout = io::stdout();
+
+    for branch in repo.branches(None)? {
+        let (branch, branch_name) = branch?;
+        let name = branch.name_bytes()?;
+        stdout.write_all(name);
+        write!(stdout, "\n")?;
+    }
+
     Ok(())
 }
 
