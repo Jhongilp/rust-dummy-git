@@ -2,17 +2,26 @@ use std::io;
 use std::fmt;
 use std::io::{Read,Write};
 use git2::Repository;
+use git2::BranchType;
+use chrono::prelude::*;
 
 fn main() -> Result<(), Error> {
     let repo = Repository::open_from_env()?;
 
     let mut stdout = io::stdout();
 
-    for branch in repo.branches(None)? {
+    for branch in repo.branches(Some(BranchType::Local))? {
         let (branch, branch_name) = branch?;
         let name = branch.name_bytes()?;
-        stdout.write_all(name);
+        stdout.write_all(name)?;
         write!(stdout, "\n")?;
+
+        let commit = branch.get().peel_to_commit()?;
+        println!("{}", commit.id());
+
+        let time = commit.time();
+        let time = NaiveDateTime::from_timestamp(time.seconds(), 0);
+        println!("{}", time);
     }
 
     Ok(())
